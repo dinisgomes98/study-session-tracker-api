@@ -3,7 +3,7 @@ from datetime import date
 from typing import Optional
 from api.database import SessionLocal
 from api.schemas.study_session import PostSession, PutSession, StudySessionResponse
-from api.services.study_session import get_sessions, create_session, update_study_session, delete_study_session
+from api.services.study_session import get_sessions, create_session, update_study_session, delete_study_session, stats_study_sessions
 
 session_router = APIRouter(prefix="/api/sessions", tags=["StudySession"])
 
@@ -50,6 +50,18 @@ def delete_session(session_id: int):
     
     try:
         return delete_study_session(db, session_id)
+
+    finally:
+        db.close()
+
+
+@session_router.get("/stats")
+def stats_sessions():
+    
+    db = SessionLocal()
+    
+    try:
+        return stats_study_sessions(db)
 
     finally:
         db.close()

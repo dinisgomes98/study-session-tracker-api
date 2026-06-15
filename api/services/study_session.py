@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from api.models.subject import Subject
 from api.models.study_session import StudySession
+from sqlalchemy import func
 
 def get_sessions(db, selected_date):
     query = db.query(StudySession)
@@ -75,3 +76,30 @@ def delete_study_session(db, session_id):
     db.commit()
 
     return {"message": "Session deleted successfully"}
+
+def stats_study_sessions(db):
+
+    total_sessions = db.query(StudySession).count()
+
+    time_spent = db.query(func.sum(StudySession.time_spent)).scalar()
+
+    most_studied_subject = (
+        db.query(
+            Subject.subject_name,
+            func.count(StudySession.id).label("total")
+        )
+        .join(StudySession)
+        .group_by(Subject.id)
+        .order_by(func.count(StudySession.id).desc())
+        .first()
+    )
+
+    avg_productivity = db.query(func.avg(StudySession.productivity)).scalar()
+
+    return {
+        "total_sessions": total_sessions,
+        "total_time_spent": round(time_spent or 0, 2),
+        "most_studied_": most_studied_subject[0] if most_studied_subject else None,
+        "most_studied_subject": most_studied_subject[0] if most_studied_subject else None,
+        "average_session_productivity": round(avg_productivity or 0, 2)
+    }
