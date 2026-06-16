@@ -68,7 +68,7 @@ def stats_by_subject(db, subject_id):
 
     total_sessions = (
         db.query(StudySession)
-        .filter(Subject.subject_id_id == subject_id)
+        .filter(Subject.subject_id == subject_id)
         .count()
     )
 
