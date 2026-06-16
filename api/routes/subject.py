@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from api.database import SessionLocal
 from api.schemas.subject import SubjectResponse, PostSubject, PutSubject
-from api.services.subject import get_subjects, create_subject, update_subject, delete_subject
+from api.services.subject import get_subjects, create_subject, update_subject, delete_subject, stats_by_subject
 
 subject_router = APIRouter(prefix="/api/subjects", tags=["Subject"])
 
@@ -49,5 +49,17 @@ def delete_subject_route(subject_id: int):
     try:
         return delete_subject(db, subject_id)
 
+    finally:
+        db.close()
+
+
+@subject_router.get("/{subject_id}/stats")
+def stats_subject(subject_id: int):
+    
+    db = SessionLocal()
+    
+    try:
+        return stats_by_subject(db, subject_id)
+    
     finally:
         db.close()
