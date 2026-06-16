@@ -3,11 +3,17 @@ from api.models.subject import Subject
 from api.models.study_session import StudySession
 from sqlalchemy import func
 
-def get_sessions(db, selected_date):
+def get_sessions(db, selected_date, subject_id, productivity):
     query = db.query(StudySession)
 
     if selected_date is not None:
         query = query.filter(StudySession.date == selected_date)
+
+    if subject_id is not None:
+        query = query.filter(StudySession.subject_id == subject_id)
+    
+    if productivity is not None:
+        query = query.filter(StudySession.productivity == productivity)
 
     sessions = query.all()
 

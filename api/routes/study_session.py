@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from datetime import date
 from typing import Optional
 from api.database import SessionLocal
@@ -8,12 +8,16 @@ from api.services.study_session import get_sessions, create_session, update_stud
 session_router = APIRouter(prefix="/api/sessions", tags=["StudySession"])
 
 @session_router.get("/", response_model=list[StudySessionResponse])
-def all_sessions(selected_date: Optional[date] = None):
+def all_sessions(
+        selected_date: Optional[date] = None, 
+        subject_id: Optional[int] = None,
+        productivity: Optional[int] = Query(None, ge=1, le=5)
+):
     
     db = SessionLocal()
 
     try:
-        return get_sessions(db, selected_date)
+        return get_sessions(db, selected_date, subject_id, productivity)
     
     finally:
         db.close()
