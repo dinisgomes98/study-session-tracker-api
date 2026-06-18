@@ -2,6 +2,8 @@ from fastapi import HTTPException
 from api.models.subject import Subject
 from api.models.study_session import StudySession
 from sqlalchemy import func
+from datetime import date
+from calendar import monthrange
 
 def get_sessions(db, selected_date, subject_id, productivity):
     query = db.query(StudySession)
@@ -83,29 +85,60 @@ def delete_study_session(db, session_id):
 
     return {"message": "Session deleted successfully"}
 
-def stats_study_sessions(db):
+def stats_study_sessions(db, selected_week, selected_month, selected_year):
+    sessions_query = db.query(StudySession)
+    subject_query = (
+    db.query(
+        Subject.subject_name,
+        func.count(StudySession.id).label("total")
+    )
+    .join(StudySession)
+)
 
-    total_sessions = db.query(StudySession).count()
+    if selected_week is not None:
+        first_week_day = date.fromisocalendar(selected_year, selected_week, 1)
+        last_week_day = date.fromisocalendar(selected_year, selected_week, 7)
 
-    time_spent = db.query(func.sum(StudySession.time_spent)).scalar()
+        sessions_query = sessions_query.filter(
+            StudySession.date >= first_week_day,
+            StudySession.date <= last_week_day)
+        
+        subject_query = subject_query.filter(
+            StudySession.date >= first_week_day,
+            StudySession.date <= last_week_day)
+
+    if selected_month is not None:
+        first_month_day = date(selected_year, selected_month, 1)
+
+        last_day_number = monthrange(selected_year, selected_month)[1]
+
+        last_month_day = date(selected_year, selected_month, last_day_number)
+
+        sessions_query = sessions_query.filter(
+            StudySession.date >= first_month_day,
+            StudySession.date <= last_month_day)
+        
+        subject_query = subject_query.filter(
+            StudySession.date >= first_month_day,
+            StudySession.date <= last_month_day)
+
+    total_sessions = sessions_query.count()
+
+    time_spent = sessions_query.with_entities(func.sum(StudySession.time_spent)).scalar()
 
     most_studied_subject = (
-        db.query(
-            Subject.subject_name,
-            func.count(StudySession.id).label("total")
-        )
-        .join(StudySession)
+        subject_query
         .group_by(Subject.id)
         .order_by(func.count(StudySession.id).desc())
         .first()
     )
 
-    avg_productivity = db.query(func.avg(StudySession.productivity)).scalar()
+    avg_productivity = sessions_query.with_entities(func.avg(StudySession.productivity)).scalar()
 
     return {
         "total_sessions": total_sessions,
         "total_time_spent": round(time_spent or 0, 2),
-        "most_studied_": most_studied_subject[0] if most_studied_subject else None,
         "most_studied_subject": most_studied_subject[0] if most_studied_subject else None,
+        "most_studied_subject_sessions": most_studied_subject[1] if most_studied_subject else 0,
         "average_session_productivity": round(avg_productivity or 0, 2)
     }
